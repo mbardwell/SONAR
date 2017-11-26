@@ -1,16 +1,33 @@
 #http://playground.arduino.cc/interfacing/python
 import matplotlib.pyplot as plt
 import numpy as np
-import Adafruit_BBIO.PWM as PWM
 
-#PWM.start(channel, duty, freq=2000, polarity=0)
-#duty values are valid 0 (off) to 100 (on)
-PWM.start("P9_14", 50, 2000, 0) #P9_14 is EHRPWM1A, P9_16 is EHRPWM1B
-#PWM.set_duty_cycle("P9_14", 25.5)
-#PWM.set_frequency("P9_14", 10)
+string = 'C:/Users/Mikey/PycharmProjects/SONAR/Transdec_Data/SubRightFacing/test0.dat'
 
-PWM.stop("P9_14")
-PWM.cleanup()
+data = np.fromfile(string, dtype=np.int16).reshape(-1, 2) # Colorado samples are 360000 long
 
-#set polarity to 1 on start:
-PWM.start("P9_14", 50, 2000, 1)
+for j in range(0,2):
+    for i in range(0,100):
+        data[i,j] = 0
+        i += 1
+    j += 1
+
+# np.savetxt("test0.csv", data, delimiter=",")
+
+# Plotting code
+
+plt.figure(1)
+plt.subplot(211)
+plt.title('Hydrophone Data 1')  # Plot the title
+plt.grid(True)  # Turn the grid on
+plt.ylabel('Hydrophone Signal')  # Set ylabels
+plt.plot(data[:,0], label='w')  # plot the temperature
+plt.legend(loc='upper left')  # plot the legend
+
+plt.subplot(212)
+plt.title('Hydrophone Data 2')  # Plot the title
+plt.grid(True)  # Turn the grid on
+plt.ylabel('Hydrophone Signal')  # Set ylabels
+plt.plot(data[:,1], label='w')  # plot the temperature
+plt.legend(loc='upper left')  # plot the legend
+plt.show()
