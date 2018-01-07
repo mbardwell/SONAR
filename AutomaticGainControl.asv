@@ -1,0 +1,34 @@
+%Issues
+%Identify ping start: done
+%Identify ping stop: Cant just do start+2500, needs to be programmed
+%Adjust gain to attain best signal
+clc; clear
+
+load('data.mat');
+data = Jan05_test1_4f;
+windowsize = 256; j = 1;
+stddev = zeros(length(data),1);
+
+for i=1:windowsize:length(data)-windowsize
+    window = data(i:windowsize+i,1);
+    stddev(i) = std(window);
+end
+subplot(2,1,1); plot(data(:,1))
+subplot(2,1,2); plot(stddev);
+
+sigma = stddev(stddev > 0);
+for i=1:length(sigma)
+threshold = max(stddev) - 10*mean(sigma);
+pingindexes = find(stddev > threshold);
+pingindex = [pingindexes(1), pingindexes(2500)]; k = 3;
+
+for j=2501:length(pingindexes)
+   if(pingindexes(j)-pingindexes(j-1) > 10000)
+       pingindex(k) = pingindexes(j);
+       k = k + 1;
+       pingindex(k) = pingindexes(j+2500);
+       k = k + 1;
+   end
+end
+
+vline(pingindex);

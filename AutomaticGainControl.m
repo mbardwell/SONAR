@@ -5,29 +5,30 @@
 clc; clear
 
 load('data.mat');
-data = Jan05_test1_4f;
-window_size = 256;
+data = Jan05_test1_6f;
+windowsize = 256;
+stddev = zeros(length(data),1);
 
-stddev = zeros(10000,1);
-
-for i=11:length(data)-256
-    window = data(i:256+i,1);
+for i=1:windowsize:length(data)-windowsize
+    window = data(i:windowsize+i,1);
     stddev(i) = std(window);
 end
-subplot(2,1,1); plot(data(:,1))
-subplot(2,1,2); plot(stddev);
+subplot(2,1,1); plot(data(:,1)); title('adc data')
+subplot(2,1,2); plot(stddev); title('standard deviation of 256 sample blocks')
 
-threshold = max(stddev) - 10*mean(stddev);
-pingindexes = find(stddev > threshold);
-pingindex = [pingindexes(1), pingindexes(2500)]; k = 3;
+sigma = stddev(stddev > 0);
+%Determine standard deviation noise floor for proper thresholding
+threshold = 4*mean(sigma(1:1000));
 
-for j=2501:length(pingindexes)
-   if(pingindexes(j)-pingindexes(j-1) > 10000)
-       pingindex(k) = pingindexes(j);
-       k = k + 1;
-       pingindex(k) = pingindexes(j+2500);
-       k = k + 1;
+pingindex = find(stddev > threshold);
+pingwindows(1) = pingindex(1); j = 2;
+for i=2:length(pingindex)
+   if(pingindex(i)-pingindex(i-1) > 5000)
+      pingwindows(j) = pingindex(i-1); j = j + 1; %end index of ping
+      pingwindows(j) = pingindex(i); j = j + 1; %start index of ping
    end
 end
+pingwindows(j) = pingindex(length(pingindex));
 
-vline(pingindex);
+subplot(2,1,1); vline(pingwindows);
+subplot(2,1,2); hline(threshold);
