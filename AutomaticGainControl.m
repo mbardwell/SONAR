@@ -1,15 +1,29 @@
 %Issues
-%Identify ping start: done
-%Identify ping stop: Cant just do start+2500, needs to be programmed
+%Identify ping start: done -- a little tight
+%Identify ping stop: done -- a little more tight
 %Adjust gain to attain best signal
 clc; clear
 
-load('data.mat');
-data = Jan05_test1_6f;
-windowsize = 256;
+load('Jan05_0.125W.mat');
+data = Jan05_test1_9f;
+windowsize = 256; offset = 500;
+
+%% addition method -- ON PAUSE UNTIL MEETING JAN 11TH
+% windowtot = zeros(length(data),1);
+% 
+% for i=offset:windowsize:length(data)-(windowsize+offset)
+%     window = data(i:windowsize+i,1);
+%     windowtot(i) = sum(window); %data
+% end
+% windowtot(windowtot ~= 0) = windowtot(windowtot ~= 0) - min(windowtot(windowtot ~= 0));
+% 
+% subplot(2,1,1); plot(data(:,1)); title('adc data')
+% subplot(2,1,2); plot(windowtot); title(['addition of 256 sample blocks with offset ' num2str(offset)])
+
+%% std dev method
 stddev = zeros(length(data),1);
 
-for i=1:windowsize:length(data)-windowsize
+for i=offset:windowsize:length(data)-(windowsize+offset)
     window = data(i:windowsize+i,1);
     stddev(i) = std(window);
 end
@@ -21,14 +35,16 @@ sigma = stddev(stddev > 0);
 threshold = 4*mean(sigma(1:1000));
 
 pingindex = find(stddev > threshold);
-pingwindows(1) = pingindex(1); j = 2;
-for i=2:length(pingindex)
-   if(pingindex(i)-pingindex(i-1) > 5000)
-      pingwindows(j) = pingindex(i-1); j = j + 1; %end index of ping
-      pingwindows(j) = pingindex(i); j = j + 1; %start index of ping
-   end
+if(pingindex)
+    pingwindows(1) = pingindex(1); j = 2;
+    for i=2:length(pingindex)
+       if(pingindex(i)-pingindex(i-1) > 5000)
+          pingwindows(j) = pingindex(i-1); j = j + 1; %end index of ping
+          pingwindows(j) = pingindex(i); j = j + 1; %start index of ping
+       end
+    end
+    pingwindows(j) = pingindex(length(pingindex));
+    subplot(2,1,1); vline(pingwindows);
 end
-pingwindows(j) = pingindex(length(pingindex));
 
-subplot(2,1,1); vline(pingwindows);
 subplot(2,1,2); hline(threshold);
