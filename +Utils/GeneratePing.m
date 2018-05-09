@@ -3,7 +3,7 @@
 function [ping] = GeneratePing(frequency, distance, gain)
     PingerPower = 2; %Pinger power in watts
     vhigh = 1024; vlow = 0; bias = 512;
-    Power = PingerPower*vhigh/distance^2; % in W. Drops as a function of 1/r^2
+    Power = PingerPower*vhigh/distance^2; % Drops as a function of 1/r^2
     Fs = 500000; % Sampling frequency
     t = 0:1/Fs:0.004; %Ping lasts for 4ms
     ping = Power * gain * sin(2*pi*frequency*t) + bias;
