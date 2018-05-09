@@ -46,3 +46,16 @@ Network Trash Folder
 Temporary Items
 .apdisk
 *.mat
+uvisonadctest/RTE/Device/STM32F746ZGTx/STCubeGenerated/MDK-ARM/
+uvisonadctest/RTE/Device/STM32F746ZGTx/STCubeGenerated/Drivers/
+
+# Keil UVision extra files
+.gpdsc
+.mxproject
+.dbgconf
+*.gpdsc
+*.dbgconf
+*.uvprojx
+*.uvoptx
+*.Michael
+*.script
