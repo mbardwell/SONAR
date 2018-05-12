@@ -40,6 +40,9 @@
 #include "stm32f7xx_hal.h"
 
 /* USER CODE BEGIN Includes */
+/* Mike Notes: 
+- Prescaler:	16MHz/16000=1000Hz so if period=1000 it will overflow ever 1s
+														*/
 
 /* USER CODE END Includes */
 
