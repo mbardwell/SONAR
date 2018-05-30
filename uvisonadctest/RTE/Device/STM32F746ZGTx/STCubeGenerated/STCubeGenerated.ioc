@@ -1,14 +1,14 @@
 #MicroXplorer Configuration settings - do not modify
 ADC1.Channel-0\#ChannelRegularConversion=ADC_CHANNEL_0
 ADC1.ClockPrescaler=ADC_CLOCK_SYNC_PCLK_DIV2
-ADC1.ContinuousConvMode=ENABLE
+ADC1.ContinuousConvMode=DISABLE
 ADC1.DMAContinuousRequests=DISABLE
 ADC1.DataAlign=ADC_DATAALIGN_RIGHT
 ADC1.DiscontinuousConvMode=DISABLE
 ADC1.EOCSelection=ADC_EOC_SINGLE_CONV
 ADC1.EnableAnalogWatchDog=false
-ADC1.ExternalTrigConv=ADC_SOFTWARE_START
-ADC1.ExternalTrigConvEdge=ADC_EXTERNALTRIGCONVEDGE_NONE
+ADC1.ExternalTrigConv=ADC_EXTERNALTRIGCONV_T2_TRGO
+ADC1.ExternalTrigConvEdge=ADC_EXTERNALTRIGCONVEDGE_RISING
 ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,NbrOfConversionFlag,master,ContinuousConvMode,ClockPrescaler,Resolution,DataAlign,ScanConvMode,DiscontinuousConvMode,DMAContinuousRequests,EOCSelection,NbrOfConversion,ExternalTrigConv,ExternalTrigConvEdge,InjNumberOfConversion,EnableAnalogWatchDog
 ADC1.InjNumberOfConversion=0
 ADC1.NbrOfConversion=1
