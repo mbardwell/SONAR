@@ -41,7 +41,7 @@
 
 /* USER CODE BEGIN Includes */
 /* Mike Notes: 
-- Prescaler:	16MHz/16000=1000Hz so if period=1000 it will overflow ever 1s
+- Prescaler:	16MHz/16000=1000Hz so if period=1000 it will overflow every 1s
 														*/
 
 /* USER CODE END Includes */
@@ -77,7 +77,7 @@ static void MX_TIM2_Init(void);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+  /* USER CODE BEGIN 1 */ 
 
   /* USER CODE END 1 */
 
@@ -221,9 +221,9 @@ static void MX_TIM2_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 16000-1;
+  htim2.Init.Prescaler = (16000-1);
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 31;
+  htim2.Init.Period = 1000;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
