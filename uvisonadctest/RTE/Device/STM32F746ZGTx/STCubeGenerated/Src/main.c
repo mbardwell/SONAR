@@ -42,11 +42,12 @@
 /* USER CODE BEGIN Includes */
 /* Mike Notes: 
 - Prescaler:	16MHz/16000=1000Hz so if period=1000 it will overflow every 1s
-														*/
+															*/
 
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim2;
 
@@ -62,6 +63,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -103,25 +105,35 @@ int main(void)
   MX_GPIO_Init();
   MX_TIM2_Init();
   MX_USART3_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, 1);
 	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_ADC_Init(&hadc1);
+	HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		uint8_t buffer[20];
-		uint8_t input = sprintf((char *) buffer, "Received? \n");
+		uint8_t buffer[100];
+		uint8_t input;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 		// int value = (BOOT_ADD1 & ~(1 << 8)) >> 8;
-		HAL_Delay(1000);
-		//for (int i = 0; i < 10000000; i++) {}; // non-deterministic
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-		HAL_UART_Transmit(&huart3, buffer, input, 1);
+		if (HAL_ADC_PollForConversion(&hadc1, 1000)) {
+			int H1 = HAL_ADC_GetValue(&hadc1);
+			input = sprintf((char *) buffer, "Received: %d\n", H1);
+			
+		}
+		else {
+			input = sprintf((char *) buffer, "Not received \n");
+		}
+		HAL_UART_Transmit(&huart3, buffer, input, 1000);
+		HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 
@@ -186,6 +198,43 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
+
+/* ADC1 init function */
+static void MX_ADC1_Init(void)
+{
+
+  ADC_ChannelConfTypeDef sConfig;
+
+    /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+    */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
 }
 
 /* TIM2 init function */
@@ -255,6 +304,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
