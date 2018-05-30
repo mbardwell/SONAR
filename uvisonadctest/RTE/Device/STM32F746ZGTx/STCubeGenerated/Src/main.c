@@ -112,8 +112,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		char input[] = "text received";
-		int len = sprintf(input, "what is \n");
+		uint8_t buffer[20];
+		uint8_t input = sprintf((char *) buffer, "Received? \n");
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -121,7 +121,7 @@ int main(void)
 		HAL_Delay(1000);
 		//for (int i = 0; i < 10000000; i++) {}; // non-deterministic
 		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-		HAL_UART_Transmit(&huart3, input, 20, 1);
+		HAL_UART_Transmit(&huart3, buffer, input, 1);
   }
   /* USER CODE END 3 */
 
