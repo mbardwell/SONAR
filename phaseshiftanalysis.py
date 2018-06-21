@@ -2,7 +2,7 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
-filename = r"C:\Users\Michael\Documents\SONAR\Data\forphaseshiftanalysis_sampletime2us.csv"
+filename = r"C:\Users\Michael\Downloads\June21_phasetest_90.csv"
 
 
 def example():
@@ -29,8 +29,6 @@ def example():
 def oscdata():
     a = []; b = []
     with open(filename, 'r') as file:
-        dialect = csv.Sniffer().sniff(file.read(1024))
-        file.seek(0)
         reader = csv.DictReader(file)
         for row in reader:
             if row['CH1'] == 'Volt':
@@ -54,7 +52,7 @@ def oscdata():
     freq = np.fft.fftfreq(L, d=T)
     ang = np.angle(sp)
     plt.plot(freq[0:int(L/2)], P1); plt.show()
-    plt.plot(freq, ang, 'o'); plt.show()
+    plt.plot(freq, ang); plt.show()
     returnangles(1000, Fs, L, ang)    
     return 0
 
