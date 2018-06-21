@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from basic_units import radians
 
 filename = r"C:\Users\Michael\Documents\SONAR\Data\forphaseshiftanalysis_sampletime2us.csv"
 
@@ -11,8 +12,8 @@ def example():
     
     ##Signal synthesis
     t = np.arange(0,L)*T
-    a = 0.5*np.sin(2*np.pi*27000*t + np.pi) # used in examples
-    plt.plot(t,a); plt.show()
+    a = 0.5*np.sin(2*np.pi*27000*t + np.pi/3) # used in examples
+    plt.plot(t[0:int(L/5)],a[0:int(L/5)]); plt.show()
     
     ##FFT analysis
     sp = np.fft.fft(a) # compute the fast fourier transform of the signal
@@ -20,9 +21,10 @@ def example():
     P1 = P2[1:int((L/2)+1)] # select the single sided spectrum ignoring DC
     P1[2:-1] = 2*P1[2:-1]; # I don't understand this step
     freq = np.fft.fftfreq(L, d=T)
-    ang = np.angle(P1)
+    ang = np.angle(sp)
+    ang = np.asarray([val*radians for val in ang])
     plt.plot(freq[0:int(L/2)], P1); plt.show()
-    plt.plot(freq[0:ang.size], ang); plt.show()
+    plt.plot(freq[0:ang.size], ang, 'o', yunits=radians); plt.show()
     return 0
 
 def oscdata():
@@ -51,8 +53,8 @@ def oscdata():
     return 0
 
 def main():
-    oscdata()
-#    example()
+#    oscdata()
+    example()
     return 0;
 
 if __name__ == "__main__":
