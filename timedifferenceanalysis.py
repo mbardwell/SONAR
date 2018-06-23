@@ -32,13 +32,16 @@ def correlate():
     plt.show()
     plt.plot(tcut,acut,tcut,bcut)
     plt.show()
-    print(min(np.abs(np.correlate(acut/max(acut),bcut/max(acut),"full"))))
-    print(np.correlate(acut/max(acut),bcut/max(acut),"full"))
-    
+    corr = np.correlate(acut,bcut,"full")
+    plt.plot(corr); plt.show()
+    timedifference = (np.argmax(corr)-acut.size)*T
+    print(timedifference)
+    print(phaseshift(timedifference))
+
 def visual():
     plt.plot(t,hydrophonea,t,hydrophoneb)
     ##Range selection
-    start = 0.004; end = start + 0.00005
+    start = 0.007; end = start + 0.00005
     xcoords = [start, end]
     signalrange = np.arange(int(start*Fs),int(end*Fs)) 
     cut(signalrange)
@@ -46,13 +49,14 @@ def visual():
         plt.axvline(x=xc)
     plt.show()
     plt.plot(tcut,acut,tcut,bcut)
-    plt.axvline(0.004024)
-    timedifference = 0.0000068
-    plt.axvline(0.004024 + timedifference)
+    offset = 0.000004
+    plt.axvline(start + offset)
+    timedifference = 0.000006
+    plt.axvline(start + offset + timedifference)
     plt.show()
-    phaseshift = 360*timedifference*fc
+    phshift = phaseshift(timedifference)
     print('Time difference: ', timedifference, 's')
-    print('Phase shift: ', phaseshift, 'deg')
+    print('Phase shift: ', phshift, 'deg')
     print('Path length difference: ', pathlengthdiff(timedifference), 'mm')
     
 def example():
@@ -81,9 +85,12 @@ def pathlengthdiff(timediff):
     vsoundwater = 1484 # m/s
     return vsoundwater*timediff
 
+def phaseshift(timediff):
+    return 360*timediff*fc % 360
+
 def main():
-#    correlate()
-    visual()
+    correlate()
+#    visual()
 #    example()
     return 0;
 
