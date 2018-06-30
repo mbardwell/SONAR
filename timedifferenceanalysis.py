@@ -2,8 +2,9 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from scipy.signal import butter, lfilter
 
-filename = r"C:\Users\Michael\Downloads\June27_phasetest_0.csv"
+filename = r"C:\Users\Michael\Downloads\June27_phasetest_-45.csv"
 
 hydrophonea = []; hydrophoneb = []
 with open(filename, 'r') as file:
@@ -20,6 +21,7 @@ Fs = 500000; T = 1/Fs; L = int(hydrophonea.size); fc = 27000
 
 ##Time signal synthesis
 t = np.linspace(0,L*T,num=L,endpoint=True)
+interp_factor = 5 # this number will multiple the signal density
 
 def correlate():
     plt.plot(t,hydrophonea,t,hydrophoneb)
@@ -37,7 +39,8 @@ def correlate():
     
     corr = np.correlate(acut,bcut,"full")
     plt.plot(corr); plt.show()
-    timedifference = (np.argmax(np.abs(corr))-acut.size)*T
+    timedifference = (np.argmax(np.abs(corr))-acut.size)*(T/interp_factor)
+    print(np.argmax(np.abs(corr))-acut.size)
     if timedifference == 0:
         timedifference = 1e-9
     print('Time difference: ', timedifference, 's')
@@ -93,7 +96,21 @@ def interpolate(mult_factor, tcut, acut, bcut):
     t_interp = np.linspace(tcut[0],tcut[-1:],num=mult_factor*len(tcut),endpoint=True)
     acut_interp = fa(t_interp)
     bcut_interp = fb(t_interp)
+    acut_interp = butter_bandpass_filter(acut_interp)
+    bcut_interp = butter_bandpass_filter(bcut_interp)
     return t_interp, acut_interp, bcut_interp
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+def butter_bandpass_filter(data, lowcut=20000, highcut=50000, fs=Fs*interp_factor, order=3):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
     
 def pathlengthdiff(timediff):
     vsoundwater = 1484 # m/s
