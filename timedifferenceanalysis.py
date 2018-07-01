@@ -4,26 +4,24 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter
 
-filename = r"C:\Users\Michael\Downloads\June27_phasetest_-45.csv"
+filename = r"C:\Users\Michael\Downloads\June30_phasetest_45.csv"
 
-hydrophonea = []; hydrophoneb = []
-with open(filename, 'r') as file:
-    reader = csv.DictReader(file)
-    for row in reader:
-        if row['CH1'] == 'Volt':
-            continue
-        hydrophonea = np.append(hydrophonea, float(row['CH1']))
-        hydrophoneb = np.append(hydrophoneb, float(row['CH2']))
-file.close()
-
-##FFT constants
-Fs = 500000; T = 1/Fs; L = int(hydrophonea.size); fc = 27000
-
-##Time signal synthesis
-t = np.linspace(0,L*T,num=L,endpoint=True)
-interp_factor = 5 # this number will multiple the signal density
+def extractfile():
+    global hydrophonea, hydrophoneb
+    hydrophonea = []; hydrophoneb = []
+    with open(filename, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['CH1'] == 'Volt':
+                continue
+            hydrophonea = np.append(hydrophonea, float(row['CH1']))
+            hydrophoneb = np.append(hydrophoneb, float(row['CH2']))
+        hydrophonea = dcbiasremoval(hydrophonea)
+        hydrophoneb = dcbiasremoval(hydrophoneb)
+    file.close() 
 
 def correlate():
+    global t
     plt.plot(t,hydrophonea,t,hydrophoneb)
     ##Range selection
     cutrange = pingfinder(hydrophonea)
@@ -40,7 +38,7 @@ def correlate():
     corr = np.correlate(acut,bcut,"full")
     plt.plot(corr); plt.show()
     timedifference = (np.argmax(np.abs(corr))-acut.size)*(T/interp_factor)
-    print(np.argmax(np.abs(corr))-acut.size)
+#    print(np.argmax(np.abs(corr))-acut.size) #debug
     if timedifference == 0:
         timedifference = 1e-9
     print('Time difference: ', timedifference, 's')
@@ -108,6 +106,7 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     return b, a
 
 def butter_bandpass_filter(data, lowcut=20000, highcut=50000, fs=Fs*interp_factor, order=3):
+    global interp_factor
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = lfilter(b, a, data)
     return y
@@ -117,12 +116,14 @@ def pathlengthdiff(timediff):
     return vsoundwater*timediff
 
 def phaseshift(timediff):
+    global fc
     sign = (360*timediff*fc)/abs(360*timediff*fc)
     return sign*(360*timediff*fc % 90)
 
 def pingfinder(hydrophone):
+    global Fs, T
     mean = np.mean(np.abs(hydrophone))
-    pingdex = [x for x in hydrophone if x > mean*2]
+    pingdex = [x for x in hydrophone if x > 2*mean]
     pingmin = np.min(np.where(hydrophone == pingdex[0]))
     pingmax = np.max(np.where(hydrophone == pingdex[-1:]))
     if (pingmax - pingmin)*T > 0.004:
@@ -135,7 +136,23 @@ def blowup(t,signala,signalb):
     cut = np.arange(int(len(t)*0.4), int(len(t)*0.5))
     plt.plot(t[cut], signala[cut], t[cut], signalb[cut]); plt.show()
     
+def dcbiasremoval(hydrophone):
+    if 1.1 > np.mean(hydrophone) > 0.9:
+        return hydrophone - np.mean(hydrophone)
+    else:
+        return None
+    
 def main():
+    global Fs, T, L, fc, t, interp_factor
+    ##FFT constants
+    Fs = 500000; T = 1/Fs; fc = 27000
+    extractfile()
+    L = int(hydrophonea.size);
+    
+    ##Time signal synthesis
+    t = np.linspace(0,L*T,num=L,endpoint=True)
+    interp_factor = 5 # this number will multiple the signal density
+    
     correlate()
 #    visual()
 #    example()
