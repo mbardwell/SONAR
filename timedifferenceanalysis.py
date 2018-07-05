@@ -4,112 +4,80 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter
 
-filename = r"C:\Users\Michael\Downloads\June30_phasetest_0.csv"
+filename = r"C:\Users\Michael\Downloads\July4_phasetest_0.csv"
 
 def extractfile():
-    global hydrophonea, hydrophoneb, hydrophonec
-    hydrophonea = []; hydrophoneb = []; hydrophonec = []
+    global hydrophonech1, hydrophonech2, hydrophonech3
+    hydrophonech1 = []; hydrophonech2 = []; hydrophonech3 = []
     with open(filename, 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             if row['CH1'] == 'Volt':
                 continue
-            hydrophonea = np.append(hydrophonea, float(row['CH1']))
-            hydrophoneb = np.append(hydrophoneb, float(row['CH2']))
-            hydrophonec = np.append(hydrophonec, float(row['CH3']))
-        hydrophonea = dcbiasremoval(hydrophonea)
-        hydrophoneb = dcbiasremoval(hydrophoneb)
-        hydrophonec = dcbiasremoval(hydrophonec)
+            hydrophonech1 = np.append(hydrophonech1, float(row['CH1']))
+            hydrophonech2 = np.append(hydrophonech2, float(row['CH2']))
+            hydrophonech3 = np.append(hydrophonech3, float(row['CH3']))
+        hydrophonech1 = dcbiasremoval(hydrophonech1)
+        hydrophonech2 = dcbiasremoval(hydrophonech2)
+        hydrophonech3 = dcbiasremoval(hydrophonech3)
     file.close() 
 
 def correlate():
     global t
-    plt.plot(t,hydrophonea,t,hydrophoneb,t,hydrophonec)
+    plt.plot(t,hydrophonech1,t,hydrophonech2,t,hydrophonech3)
     ##Range selection
-    cutrange = pingfinder(hydrophonea)
+    cutrange = pingfinder(hydrophonech1)
     cut(cutrange)
     plt.axvline(x=cutrange[0]*T)
     plt.axvline(x=cutrange[-1:]*T)
     plt.show()
     
-    plt.plot(tcut,acut,tcut,bcut,tcut,ccut)
+    plt.plot(tcut,h1cut,tcut,h2cut,tcut,h3cut)
+    plt.axvline(x=tcut[int(len(tcut)*0.4)])
+    plt.axvline(x=tcut[int(len(tcut)*0.5)])
     plt.show()
     
-    blowup(tcut,acut,bcut,ccut)
+    blowup(tcut,h1cut,h2cut,h3cut)
     
-    corrL = np.correlate(acut,bcut,"full")
-    corrR = np.correlate(bcut,ccut,"full")
-    plt.plot(corrL); plt.show()
-    timedifferenceL = (np.argmax(np.abs(corrL))-acut.size)*(T/interp_factor)
-    timedifferenceR = (np.argmax(np.abs(corrR))-acut.size)*(T/interp_factor)
-#    print(np.argmax(np.abs(corr))-acut.size) #debug
+    corrL = np.correlate(h1cut,h2cut,"full")
+    corrR = np.correlate(h3cut,h2cut,"full")
+    plt.plot(corrL[int(0.4*len(corrL)):int(0.6*len(corrL))])
+    plt.plot(corrR[int(0.4*len(corrR)):int(0.6*len(corrR))])
+    plt.show()
+    timedifferenceL = (np.argmax(np.abs(corrL))-h1cut.size)*(T/interp_factor)
+    timedifferenceR = (np.argmax(np.abs(corrR))-h1cut.size)*(T/interp_factor)
     if timedifferenceL == 0:
         timedifferenceL = 1e-9
     if timedifferenceR == 0:
         timedifferenceR = 1e-9
-    print('Time difference L: ', timedifferenceL, 's')
-    print('Time difference R: ', timedifferenceR, 's')
-    print('Phase shift L: ', phaseshift(timedifferenceL), 'deg')
-    print('Phase shift R: ', phaseshift(timedifferenceR), 'deg')
-
-def visual():
-    plt.plot(t,hydrophonea,t,hydrophoneb)
-    ##Range selection
-    start = 0.007; end = start + 0.00005
-    xcoords = [start, end]
-    signalrange = np.arange(int(start*Fs),int(end*Fs)) 
-    cut(signalrange)
-    for xc in xcoords:
-        plt.axvline(x=xc)
-    plt.show()
-    plt.plot(tcut,acut,tcut,bcut)
-    offset = 0.000004
-    plt.axvline(start + offset)
-    timedifference = 0.000006
-    plt.axvline(start + offset + timedifference)
-    plt.show()
-    phshift = phaseshift(timedifference)
-    print('Time difference: ', timedifference, 's')
-    print('Phase shift: ', phshift, 'deg')
-    print('Path length difference: ', pathlengthdiff(timedifference), 'mm')
-    
-def example():
-    # Demonstrates relationship between phase shift and time delay
-    Fs = 500000; T = 1/Fs; f_centre = 27000; phaseshift = 75
-    t = np.arange(0,0.0001,T)
-    wavea = 0.5*np.sin(2*np.pi*f_centre*t + phaseshift*np.pi/180)
-    waveb = 0.5*np.sin(2*np.pi*f_centre*t)
-    print(np.correlate(wavea, waveb))
-    plt.plot(t,wavea,t,waveb)
-    plt.axvline(0.000026)
-    timedifference = phaseshift/(360*f_centre)
-    plt.axvline(0.000026 + timedifference) # td = ps/2pif
-    plt.show()
-    print('Time difference: ', timedifference, 's')
-    print('Phase shift: ', phaseshift, 'deg')
-    print('Path length difference: ', pathlengthdiff(timedifference), 'mm')
+    print('Time difference AB: ', timedifferenceL, 's')
+    print('Time difference CB: ', timedifferenceR, 's')
+    print('Phase shift AB: ', phaseshift(timedifferenceL), 'deg')
+    print('Phase shift CB: ', phaseshift(timedifferenceR), 'deg')
     
 def cut(signalrange):
-    global tcut, acut, bcut, ccut
+    global tcut, h1cut, h2cut, h3cut
     tcut = t[signalrange]; tcut = tcut/np.max(t)
-    acut = hydrophonea[signalrange]; acut = acut/np.max(acut)
-    bcut = hydrophoneb[signalrange]; bcut = bcut/np.max(bcut)
-    ccut = hydrophonec[signalrange]; ccut = ccut/np.max(ccut)
-    tcut, acut, bcut, ccut = interpolate(5, tcut, acut, bcut, ccut)
+    h1cut = hydrophonech1[signalrange]; h1cut = h1cut/np.max(h1cut)
+    h2cut = hydrophonech2[signalrange]; h2cut = h2cut/np.max(h2cut)
+    h3cut = hydrophonech3[signalrange]; h3cut = h3cut/np.max(h3cut)
+    tcut, h1cut, h2cut, h3cut = interpolate(interp_factor, tcut, h1cut, h2cut, h3cut)
+    hamm = np.hamming(tcut.size)
+    h1cut = h1cut*hamm; h2cut = h2cut*hamm; h3cut = h3cut*hamm
     
-def interpolate(mult_factor, tcut, acut, bcut, ccut):
+def interpolate(mult_factor, tcut, h1cut, h2cut, h3cut):
     global Fs, interp_factor
-    fa = interp1d(tcut, acut, kind='cubic')
-    fb = interp1d(tcut, bcut, kind='cubic')
-    fc = interp1d(tcut, ccut, kind='cubic')
+    fa = interp1d(tcut, h1cut, kind='cubic')
+    fb = interp1d(tcut, h2cut, kind='cubic')
+    fc = interp1d(tcut, h3cut, kind='cubic')
     t_interp = np.linspace(tcut[0],tcut[-1:],num=mult_factor*len(tcut),endpoint=True)
-    acut_interp = fa(t_interp)
-    bcut_interp = fb(t_interp)
-    ccut_interp = fc(t_interp)
-    acut_interp = butter_bandpass_filter(acut_interp, Fs*interp_factor)
-    bcut_interp = butter_bandpass_filter(bcut_interp, Fs*interp_factor)
-    ccut_interp = butter_bandpass_filter(ccut_interp, Fs*interp_factor)
-    return t_interp, acut_interp, bcut_interp, ccut_interp
+    h1cut_interp = fa(t_interp)
+    h2cut_interp = fb(t_interp)
+    h3cut_interp = fc(t_interp)
+    h1cut_interp = butter_bandpass_filter(h1cut_interp, Fs*interp_factor)
+    h2cut_interp = butter_bandpass_filter(h2cut_interp, Fs*interp_factor)
+    h3cut_interp = butter_bandpass_filter(h3cut_interp, Fs*interp_factor)
+    return t_interp, h1cut_interp, h2cut_interp, h3cut_interp
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
@@ -145,9 +113,9 @@ def pingfinder(hydrophone):
 #    plt.plot(np.arange(0,(ping.size-0.5)*T,T),ping); plt.show()
     return np.arange(pingmin, pingmax)
 
-def blowup(t,signala,signalb,signalc):
-    cut = np.arange(int(len(t)*0.4), int(len(t)*0.5))
-    plt.plot(t[cut], signala[cut], t[cut], signalb[cut], t[cut], signalc[cut])
+def blowup(t,signalh1,signalh2,signalh3):
+    tnew = np.arange(int(len(tcut)*0.4), int(len(tcut)*0.5))
+    plt.plot(t[tnew], signalh1[tnew], t[tnew], signalh2[tnew], t[tnew], signalh3[tnew])
     plt.show()
     
 def dcbiasremoval(hydrophone):
@@ -161,16 +129,13 @@ def main():
     ##FFT constants
     Fs = 500000; T = 1/Fs; f_centre = 27000
     extractfile()
-    L = int(hydrophonea.size);
+    L = int(hydrophonech1.size);
     
     ##Time signal synthesis
     t = np.linspace(0,L*T,num=L,endpoint=True)
-    interp_factor = 5 # this number will multiple the signal density
+    interp_factor = 50 # this number will multiple the signal density
     
     correlate()
-#    visual()
-#    example()
-#    interpolate(t, hydrophonea)
     return 0;
 
 if __name__ == "__main__":
