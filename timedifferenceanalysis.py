@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.signal import butter, lfilter
 
-filename = r"C:\Users\Michael\Downloads\July4_phasetest_0.csv"
+filename = r"C:\Users\Michael\Downloads\July4_phasetest_45.csv"
 
 def extractfile():
     global hydrophonech1, hydrophonech2, hydrophonech3
@@ -14,9 +14,9 @@ def extractfile():
         for row in reader:
             if row['CH1'] == 'Volt':
                 continue
-            hydrophonech1 = np.append(hydrophonech1, float(row['CH1']))
-            hydrophonech2 = np.append(hydrophonech2, float(row['CH2']))
-            hydrophonech3 = np.append(hydrophonech3, float(row['CH3']))
+            hydrophonech1 = np.append(hydrophonech1, float(row['CH3']))
+            hydrophonech2 = np.append(hydrophonech2, float(row['CH1']))
+            hydrophonech3 = np.append(hydrophonech3, float(row['CH2']))
         hydrophonech1 = dcbiasremoval(hydrophonech1)
         hydrophonech2 = dcbiasremoval(hydrophonech2)
         hydrophonech3 = dcbiasremoval(hydrophonech3)
@@ -41,11 +41,10 @@ def correlate():
     
     corrL = np.correlate(h1cut,h2cut,"full")
     corrR = np.correlate(h3cut,h2cut,"full")
-    plt.plot(corrL[int(0.4*len(corrL)):int(0.6*len(corrL))])
-    plt.plot(corrR[int(0.4*len(corrR)):int(0.6*len(corrR))])
-    plt.show()
-    timedifferenceL = (np.argmax(np.abs(corrL))-h1cut.size)*(T/interp_factor)
-    timedifferenceR = (np.argmax(np.abs(corrR))-h1cut.size)*(T/interp_factor)
+    maxcorrL, maxcorrR = corrplotting(corrL, corrR)
+    corrcheck(tcut,h1cut,h2cut,h3cut,maxcorrL,maxcorrR)
+    timedifferenceL = (maxcorrL-h1cut.size)*(T/interp_factor)
+    timedifferenceR = (maxcorrR-h1cut.size)*(T/interp_factor)
     if timedifferenceL == 0:
         timedifferenceL = 1e-9
     if timedifferenceR == 0:
@@ -74,9 +73,9 @@ def interpolate(mult_factor, tcut, h1cut, h2cut, h3cut):
     h1cut_interp = fa(t_interp)
     h2cut_interp = fb(t_interp)
     h3cut_interp = fc(t_interp)
-    h1cut_interp = butter_bandpass_filter(h1cut_interp, Fs*interp_factor)
-    h2cut_interp = butter_bandpass_filter(h2cut_interp, Fs*interp_factor)
-    h3cut_interp = butter_bandpass_filter(h3cut_interp, Fs*interp_factor)
+    h1cut_interp = butter_bandpass_filter(h1cut_interp, Fs*interp_factor, order=1)
+    h2cut_interp = butter_bandpass_filter(h2cut_interp, Fs*interp_factor, order=1)
+    h3cut_interp = butter_bandpass_filter(h3cut_interp, Fs*interp_factor, order=1)
     return t_interp, h1cut_interp, h2cut_interp, h3cut_interp
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -86,7 +85,7 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype='band')
     return b, a
 
-def butter_bandpass_filter(data, fs, lowcut=20000, highcut=50000, order=3):
+def butter_bandpass_filter(data, fs, lowcut=20000, highcut=50000, order=5):
 #    fs = Fs*interp_factor
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = lfilter(b, a, data)
@@ -98,8 +97,10 @@ def pathlengthdiff(timediff):
 
 def phaseshift(timediff):
     global f_centre
-    sign = (360*timediff*f_centre)/abs(360*timediff*f_centre)
-    return sign*(360*timediff*f_centre % 90)
+    shift = 360*timediff*f_centre
+#    if (shift > 90) :
+#        shift = -(180 - shift)
+    return shift
 
 def pingfinder(hydrophone):
     global Fs, T
@@ -113,10 +114,31 @@ def pingfinder(hydrophone):
 #    plt.plot(np.arange(0,(ping.size-0.5)*T,T),ping); plt.show()
     return np.arange(pingmin, pingmax)
 
-def blowup(t,signalh1,signalh2,signalh3):
-    tnew = np.arange(int(len(tcut)*0.4), int(len(tcut)*0.5))
+def blowup(t,signalh1,signalh2,signalh3,minrange=0.4,maxrange=0.5,xline1=None,xline2=None):
+    tnew = np.arange(int(len(tcut)*minrange), int(len(tcut)*maxrange))
     plt.plot(t[tnew], signalh1[tnew], t[tnew], signalh2[tnew], t[tnew], signalh3[tnew])
+    if xline1 or xline2 != None:
+        centre = t[tnew[int(len(tnew)/2)]]
+        plt.axvline(x=centre)
+        plt.axvline(x=centre+xline1*T)
+        plt.axvline(x=centre+xline2*T)
     plt.show()
+    
+def corrplotting(corrL, corrR):
+    maxcorrL = np.argmax(np.abs(corrL))
+    maxcorrR = np.argmax(np.abs(corrR))
+    trangeL = np.arange(int(0.99*maxcorrL),int(1.01*maxcorrL))
+    trangeR = np.arange(int(0.99*maxcorrR),int(1.01*maxcorrR))
+    plt.plot(trangeL, corrL[trangeL], trangeR, corrR[trangeR])
+    plt.axvline(x=maxcorrL)
+    plt.axvline(x=maxcorrR)
+    plt.show()
+    return maxcorrL, maxcorrR
+
+def corrcheck(tcut,h1cut,h2cut,h3cut,maxcorrL,maxcorrR):
+    indexshiftL = (maxcorrL - h1cut.size)/interp_factor
+    indexshiftR = (maxcorrL - h1cut.size)/interp_factor
+    blowup(tcut,h1cut,h2cut,h3cut,0.499,0.501,indexshiftL,indexshiftR)
     
 def dcbiasremoval(hydrophone):
     if 1.1 > np.mean(hydrophone) > 0.9:
@@ -136,7 +158,7 @@ def main():
     interp_factor = 50 # this number will multiple the signal density
     
     correlate()
-    return 0;
+    return 0
 
 if __name__ == "__main__":
     main()
