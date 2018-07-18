@@ -12,6 +12,8 @@ class SignalConditioning(object):
         self.signalB = signalB
         self.signalC = signalC
         self.Fs = Fs
+        self.L = self.signalA.size
+        self.samplingtime = self.L/self.Fs
         self.sizecheck()
         
     def sizecheck(self):
@@ -34,9 +36,10 @@ class SignalConditioning(object):
         mean = np.mean(np.abs(self.signalA))
         pingdex = [x for x in self.signalA if x > 2*mean]
         pingmin = np.min(np.where(self.signalA == pingdex[0]))
-        pingmax = np.max(np.where(self.signalA == pingdex[-1:]))
-        if (pingmax - pingmin)/self.Fs > 0.004:
-            pingmax = int(pingmin + 0.004*self.Fs)
+        pingmax = pingmin + 250
+#        pingmax = np.max(np.where(self.signalA == pingdex[-1:]))
+#        if (pingmax - pingmin)/self.Fs > 0.004:
+#            pingmax = int(pingmin + 0.004*self.Fs)
         return np.arange(pingmin, pingmax)
     
     def cutoutping(self):
@@ -45,6 +48,8 @@ class SignalConditioning(object):
         self.signalA = self.signalA[signalrange]
         self.signalB = self.signalB[signalrange]
         self.signalC = self.signalC[signalrange]
+        self.L = self.signalA.size
+        self.samplingtime = self.L/self.Fs
     
     def normalise(self):
         self.signalA = self.signalA/np.max(self.signalA)
@@ -71,6 +76,7 @@ class SignalConditioning(object):
         self.signalC = lfilter(b, a, self.signalC)
     
     def interpolate(self, mult_factor):
+        self.originalsize = self.L
         fa = interp1d(self.t, self.signalA, kind='cubic')
         fb = interp1d(self.t, self.signalB, kind='cubic')
         fc = interp1d(self.t, self.signalC, kind='cubic')
@@ -78,6 +84,8 @@ class SignalConditioning(object):
         self.signalA = fa(self.t)
         self.signalB = fb(self.t)
         self.signalC = fc(self.t)
+        self.Fs = self.signalA.size/self.samplingtime
+        self.L = self.signalA.size
 
 class PhaseShiftAnalysis(object):
     def __init__(self, Fc=27000, Fs=500000):
@@ -85,36 +93,33 @@ class PhaseShiftAnalysis(object):
         self.Fs = Fs
         
     def returnangles(self, angles, freq):
-        index = self.binselection(27000, freq)
-        print(angles[index[0]])
+#        print(self.peakindex)
+#        index = self.binselection(self.peakindex)
+        print(angles[self.peakindex])
         #self.pilist()
         
     def pilist(self):
         print('pi/2: ', np.pi/2, "\n", 'pi/3: ', np.pi/3, '\n', 'pi/4: ', np.pi/4)
     
-    def binselection(self, fc, freq):
-        return np.where(freq == min(freq, key=lambda x:abs(x-fc)))
+#    def binselection(self, fc):
+#        return np.where(self.freq == min(self.freq, key=lambda x:abs(x-fc)))
         
-    def fftanalysis(self, hydrophone):
-        self.T = 1/self.Fs
-        self.L = hydrophone.size
+    def fftanalysis(self, hydrophone, Fs):
+        self.Fs = Fs
+        T = 1/self.Fs
+        L = hydrophone.size
         ##FFT analysis
         sp = np.fft.rfft(hydrophone) # compute the fast fourier transform of the signal
-        P2 = np.abs(sp/self.L) # compute two sided spectrum
-        P1 = P2[1:int((self.L/2)+1)] # select the single sided spectrum ignoring DC
+        P2 = np.abs(sp/L) # compute two sided spectrum
+        P1 = P2[1:int((L/2)+1)] # select the single sided spectrum ignoring DC
         P1[2:-1] = 2*P1[2:-1]; # I don't understand this step
-        freq = np.fft.rfftfreq(self.L, d=self.T)
-        ang = np.angle(sp)
-        plt.figure(1)
-        plt.plot(freq[0:int(self.L/2)], P1)
-        plt.xlim([20000, 50000])
-        plt.plot()
-        plt.figure(2)
-        plt.plot(freq[0:int(self.L/2)], ang[0:int(self.L/2)])
-        plt.xlim([20000, 50000])
-        plt.plot()
-        self.returnangles(ang, freq)
-        return ang[P1.argmax()]
+        self.peakindex = np.argmax(P1)
+        self.freq = np.fft.rfftfreq(L, d=T)
+        ang = np.angle(sp, deg=1)
+        plt.plot(self.freq[0:int(L/2)], P1); plt.show()
+#        plt.plot(self.freq[0:100], P1[0:100]); plt.show()
+        plt.plot(self.freq, ang, 'o'); plt.show()
+        self.returnangles(ang, self.freq)
         
     def example(self):
         ##FFT constants

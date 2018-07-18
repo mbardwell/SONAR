@@ -9,15 +9,19 @@ def main():
     
     tda = TimeDifferenceAnalysis()
     psa = PhaseShiftAnalysis()
-    sig = SignalConditioning(500000, signalA, signalB, signalC)
+    sig = SignalConditioning(500000/4, signalA, signalB, signalC)
     sig.removebias()
     sig.cutoutping()
     sig.normalise()
 #    sig.hamming()
-#    sig.butter_bandpass_filter(order=2)
-#    sig.interpolate(5)
-    psa.fftanalysis(sig.signalA)
-    plt.plot(sig.signalA)
+    sig.butter_bandpass_filter(order=3)
+    
+    desired_L = 5000
+    while (sig.L != desired_L):
+        sig.interpolate(desired_L/sig.L)
+    print('L', sig.L, 'Fs', sig.Fs)
+    psa.fftanalysis(sig.signalA, sig.Fs)
+#    plt.plot(sig.signalA[0:100] ,'o')
 
 ## Use mock data ##
 def sinewave(t, phase):
