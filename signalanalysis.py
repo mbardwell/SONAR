@@ -91,12 +91,11 @@ class PhaseShiftAnalysis(object):
     def __init__(self, Fc=27000, Fs=500000):
         self.Fc = Fc
         self.Fs = Fs
+        self.phase = []
+        self.phasecleanup_flag = 0
         
-    def returnangles(self, angles, freq):
-#        print(self.peakindex)
-#        index = self.binselection(self.peakindex)
-        print(angles[self.peakindex])
-        #self.pilist()
+    def returnangles(self, angles):
+        return angles[self.peakindex]
         
     def pilist(self):
         print('pi/2: ', np.pi/2, "\n", 'pi/3: ', np.pi/3, '\n', 'pi/4: ', np.pi/4)
@@ -104,7 +103,7 @@ class PhaseShiftAnalysis(object):
 #    def binselection(self, fc):
 #        return np.where(self.freq == min(self.freq, key=lambda x:abs(x-fc)))
         
-    def fftanalysis(self, hydrophone, Fs):
+    def fftanalysis(self, Fs, hydrophone):
         self.Fs = Fs
         T = 1/self.Fs
         L = hydrophone.size
@@ -115,11 +114,37 @@ class PhaseShiftAnalysis(object):
         P1[2:-1] = 2*P1[2:-1]; # I don't understand this step
         self.peakindex = np.argmax(P1)
         self.freq = np.fft.rfftfreq(L, d=T)
+        self.peakfreq = self.freq[self.peakindex]
         ang = np.angle(sp, deg=1)
-        plt.plot(self.freq[0:int(L/2)], P1); plt.show()
-#        plt.plot(self.freq[0:100], P1[0:100]); plt.show()
-        plt.plot(self.freq, ang, 'o'); plt.show()
-        self.returnangles(ang, self.freq)
+#        plt.plot(self.freq[0:int(L/2)], P1); plt.show()
+#        plt.plot(self.freq, ang, 'o'); plt.show()
+        return self.returnangles(ang)
+    
+    def phasecleanup(self, Fs, signalA, signalB, signalC):
+        self.phase = np.append(self.phase, self.fftanalysis(Fs, signalA))
+        self.phase = np.append(self.phase, self.fftanalysis(Fs, signalB))
+        self.phase = np.append(self.phase, self.fftanalysis(Fs, signalC))
+        print(self.phase)
+        
+        for phase in self.phase:
+            if phase < 0:
+                self.phase[np.where(self.phase == phase)] = 360 + phase
+        print(self.phase)
+        self.phasecleanup_flag = 1
+        
+    def phasedifference(self):
+        if self.phasecleanup_flag == 1:
+            self.shiftL = self.phase[1]-self.phase[0]
+            self.shiftR = self.phase[1]-self.phase[2]
+            print('shiftL', self.shiftL, 'shiftR', self.shiftR)
+        else:
+            print('Must run phasecleanup method before phasedifference method')
+    
+#    def heading(self):
+#        print(self.phasedifference(phaseA, phaseB))
+#        print(self.phasedifference(phaseC, phaseB))
+        
+
         
     def example(self):
         ##FFT constants

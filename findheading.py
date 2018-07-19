@@ -7,47 +7,48 @@ def main():
     filename = r"C:\Users\Michael\Downloads\July4_phasetest_45.csv"
     signalA, signalB, signalC = extractfile(filename)
     
-    tda = TimeDifferenceAnalysis()
     psa = PhaseShiftAnalysis()
-    sig = SignalConditioning(500000/4, signalA, signalB, signalC)
+    sig = SignalConditioning(500000, signalA, signalB, signalC)
     sig.removebias()
     sig.cutoutping()
     sig.normalise()
-#    sig.hamming()
-    sig.butter_bandpass_filter(order=3)
+    sig.hamming()
+#    sig.butter_bandpass_filter(order=3)
+    plt.plot(sig.signalA ,'-')
+    plt.plot(sig.signalB ,'-')
+    plt.plot(sig.signalC ,'-'); plt.show()
     
-    desired_L = 5000
-    while (sig.L != desired_L):
-        sig.interpolate(desired_L/sig.L)
-    print('L', sig.L, 'Fs', sig.Fs)
-    psa.fftanalysis(sig.signalA, sig.Fs)
-#    plt.plot(sig.signalA[0:100] ,'o')
-
+#    desired_L = 5000
+#    while (sig.L != desired_L):
+#        sig.interpolate(desired_L/sig.L)
+    psa.phasecleanup(500000, sig.signalA, sig.signalB, sig.signalC)
+    psa.phasedifference()
+    
 ## Use mock data ##
 def sinewave(t, phase):
     f_centre = 27000
     wave = t
     wave = 0.01*np.sin(2*np.pi*t[0:int(len(t)*0.6)]*10)
-    wave = np.append(wave,np.sin(2*np.pi*t[0:int(len(t)*0.4)]*f_centre + phase))
+    wave = np.append(wave,np.sin(2*np.pi*t[0:int(len(t)*0.4)]*f_centre + phase*np.pi/180))
     wave = np.append(wave,0.01*np.sin(2*np.pi*t[0:int(len(t)*0.6)]*10))
     return wave
 
 ## Use real data ##
 def extractfile(filename):
     hydrophonech1 = []; hydrophonech2 = []; hydrophonech3 = []
-    with open(filename, 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['CH1'] == 'Volt':
-                continue
-            hydrophonech1 = np.append(hydrophonech1, float(row['CH3']))
-            hydrophonech2 = np.append(hydrophonech2, float(row['CH1']))
-            hydrophonech3 = np.append(hydrophonech3, float(row['CH2']))
-#        tp = np.linspace(0,1000/500000,num=1000,endpoint=True)
-#        hydrophonech1 = sinewave(tp, 0)
-#        hydrophonech2 = sinewave(tp, 30)
-#        hydrophonech3 = sinewave(tp, 45)
-    file.close()
+#    with open(filename, 'r') as file:
+#        reader = csv.DictReader(file)
+#        for row in reader:
+#            if row['CH1'] == 'Volt':
+#                continue
+#            hydrophonech1 = np.append(hydrophonech1, float(row['CH3']))
+#            hydrophonech2 = np.append(hydrophonech2, float(row['CH1']))
+#            hydrophonech3 = np.append(hydrophonech3, float(row['CH2']))
+#    file.close()
+    tp = np.linspace(0,500/500000,num=500,endpoint=True)
+    hydrophonech1 = sinewave(tp, 0)
+    hydrophonech2 = sinewave(tp, 190)
+    hydrophonech3 = sinewave(tp, 270)
     return hydrophonech1, hydrophonech2, hydrophonech3
     
 if __name__ == "__main__":
