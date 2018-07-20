@@ -29,7 +29,7 @@ class SignalConditioning(object):
             self.signalA = self.signalA - np.mean(self.signalA)
         if 1.1 > np.mean(self.signalB) > 0.9:
             self.signalB = self.signalB - np.mean(self.signalB)
-        if 1.1 > np.mean(self.signalA) > 0.9:
+        if 1.1 > np.mean(self.signalC) > 0.9:
             self.signalC = self.signalC - np.mean(self.signalC)
             
     def findping(self):
@@ -85,6 +85,7 @@ class SignalConditioning(object):
         self.signalB = fb(self.t)
         self.signalC = fc(self.t)
         self.Fs = self.signalA.size/self.samplingtime
+        print('Fs: ', self.Fs)
         self.L = self.signalA.size
 
 class PhaseShiftAnalysis(object):
@@ -92,6 +93,7 @@ class PhaseShiftAnalysis(object):
         self.Fc = Fc
         self.Fs = Fs
         self.phase = []
+        self.peakfreq = []
         self.phasecleanup_flag = 0
         
     def returnangles(self, angles):
@@ -106,45 +108,63 @@ class PhaseShiftAnalysis(object):
     def fftanalysis(self, Fs, hydrophone):
         self.Fs = Fs
         T = 1/self.Fs
-        L = hydrophone.size
+        self.L = hydrophone.size
         ##FFT analysis
         sp = np.fft.rfft(hydrophone) # compute the fast fourier transform of the signal
-        P2 = np.abs(sp/L) # compute two sided spectrum
-        P1 = P2[1:int((L/2)+1)] # select the single sided spectrum ignoring DC
+        P2 = np.abs(sp/self.L) # compute two sided spectrum
+        P1 = P2[1:int((self.L/2)+1)] # select the single sided spectrum ignoring DC
         P1[2:-1] = 2*P1[2:-1]; # I don't understand this step
+        self.P1 = P1
         self.peakindex = np.argmax(P1)
-        self.freq = np.fft.rfftfreq(L, d=T)
-        self.peakfreq = self.freq[self.peakindex]
-        ang = np.angle(sp, deg=1)
-#        plt.plot(self.freq[0:int(L/2)], P1); plt.show()
-#        plt.plot(self.freq, ang, 'o'); plt.show()
-        return self.returnangles(ang)
+        self.freq = np.fft.rfftfreq(self.L, d=T)
+        self.peakfreq = np.append(self.peakfreq, self.freq[self.peakindex])
+        self.ang = np.angle(sp, deg=1)
+        return self.returnangles(self.ang)
     
     def phasecleanup(self, Fs, signalA, signalB, signalC):
         self.phase = np.append(self.phase, self.fftanalysis(Fs, signalA))
         self.phase = np.append(self.phase, self.fftanalysis(Fs, signalB))
         self.phase = np.append(self.phase, self.fftanalysis(Fs, signalC))
-        print(self.phase)
+        print('pre cleanup phase', self.phase)
         
         for phase in self.phase:
             if phase < 0:
                 self.phase[np.where(self.phase == phase)] = 360 + phase
-        print(self.phase)
+        print('post cleanup phase', self.phase)
+        self.fccheck()
+        print('centre frequencies', self.peakfreq)
         self.phasecleanup_flag = 1
         
     def phasedifference(self):
         if self.phasecleanup_flag == 1:
             self.shiftL = self.phase[1]-self.phase[0]
             self.shiftR = self.phase[1]-self.phase[2]
-            print('shiftL', self.shiftL, 'shiftR', self.shiftR)
+            print('shiftL', round(self.shiftL), 'shiftR', round(self.shiftR))
+            self.phasecleanup_flag = 0 # reset flag for next run
         else:
             print('Must run phasecleanup method before phasedifference method')
     
-#    def heading(self):
-#        print(self.phasedifference(phaseA, phaseB))
-#        print(self.phasedifference(phaseC, phaseB))
-        
+    def heading(self):
+        if self.shiftL > 0 and self.shiftR > 0:
+            self.heading = self.shiftL - self.shiftR
 
+        if self.shiftL < 0 and self.shiftR > 0:
+            self.heading = -60 - self.shiftR + np.abs(self.shiftL)
+        
+        if self.shiftL > 0 and self.shiftR < 0:
+            self.heading = 60 + self.shiftL - np.abs(self.shiftR)
+#        
+        if self.shiftL < 0 and self.shiftR < 0:
+            self.heading = -(self.shiftL - self.shiftR) # not verified
+            
+        print('Heading:', self.heading)    
+            
+    def fccheck(self):
+        if self.peakfreq[0] != self.peakfreq[1]:
+            print('signal 1 and ref centre frequencies not aligned')
+        if self.peakfreq[2] != self.peakfreq[1]:
+            print('signal 1 and ref centre frequencies not aligned')
+        
         
     def example(self):
         ##FFT constants
@@ -165,44 +185,7 @@ class PhaseShiftAnalysis(object):
         plt.plot(freq[0:int(L/2)], P1); plt.show()
         plt.plot(freq, ang, 'o'); plt.show()
         self.returnangles(ang, freq)    
-        return 0
-#    
-#    def oscdata():
-#        hydrophonea = []; hydrophoneb = []
-#        with open(filename, 'r') as file:
-#            reader = csv.DictReader(file)
-#            for row in reader:
-#                if row['CH1'] == 'Volt':
-#                    continue
-#                hydrophonea = np.append(hydrophonea, float(row['CH1']))
-#                hydrophoneb = np.append(hydrophoneb, float(row['CH2']))
-#        file.close()
-#        
-#        ##FFT constants
-#        Fs = 500000; T = 1/Fs; L = int(hydrophonea.size)
-#        
-#        ##Time signal synthesis
-#        t = np.arange(0,L)*T; print(t[1])
-#        plt.plot(t,hydrophonea,t,hydrophoneb)
-#        
-#        ##Range selection
-#        start = 0.004; end = start + 0.001
-#        xcoords = [start, end]
-#        signalrange = np.arange(int(start*Fs),int(end*Fs))
-#        cut(signalrange, t, hydrophonea, hydrophoneb)
-#        for xc in xcoords:
-#            plt.axvline(x=xc)
-#        plt.show()
-#        plt.plot(tcut,acut,tcut,bcut)
-#        plt.show()
-#        anglea = fftanalysis(acut, Fs)
-#        angleb = fftanalysis(bcut, Fs)
-#        print("Phase shift: ", (anglea - angleb)*180/np.pi)
-#        plt.show()
-#        return 0
-#    
-
-    
+        return 0   
 
     
 class TimeDifferenceAnalysis(object):
@@ -226,8 +209,27 @@ class TimeDifferenceAnalysis(object):
 #    def phaseshift(self, timediff): ## Functionality overlap with PSA
 #        shift = 360*timediff*self.Fc
 #        return shift
+        
+class Misc(object):
     
-    
+    def plotsignals(self, signalA, signalB, signalC):
+        plt.plot(signalA[0:100] ,'o')
+        plt.plot(signalB[0:100] ,'o')
+        plt.plot(signalC[0:100] ,'o'); plt.show()
+        
+    # fccheck function has already verified that the fc's are the same. fft's should be close    
+    def plotfft(self, freq, P1, ang, L): 
+        plt.plot(freq[0:int(L/2)], P1); plt.show()
+#        plt.plot(self.freq, self.ang, 'o'); plt.show()
+                
+    # Creates mock data
+    def sinewave(self, t, phase):
+        f_centre = 27000
+        wave = t
+        wave = 0.01*np.sin(2*np.pi*t[0:int(len(t)*0.6)]*10)
+        wave = np.append(wave,np.sin(2*np.pi*t[0:int(len(t)*0.4)]*f_centre + phase*np.pi/180))
+        wave = np.append(wave,0.01*np.sin(2*np.pi*t[0:int(len(t)*0.6)]*10))
+        return wave
     
 ### For testing ###
             
