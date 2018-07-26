@@ -57,7 +57,8 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-
+static int H3;
+static int H3flag;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
