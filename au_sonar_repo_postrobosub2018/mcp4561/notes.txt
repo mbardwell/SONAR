@@ -1,0 +1,16 @@
+i2cdetect -l
+sudo i2cdetect -r 2
+
+Addresses are 2e and 2f
+
+MCP4561 - pot with EE wiper lock 100K 257 steps
+
+read the status register address 0x05 command = 0101 11 00 (0x5c)and then read a word
+sudo i2cget -y 1 0x2f 0x5c w => 0xf001 (1111 0000 0000 0001)
+
+
+### Turning MCP4561 on/off
+GPIO_60 = P9_12
+config-pin -q P9_12
+config-pin -a P9_12 high
+config-pin -a P9_12 low
